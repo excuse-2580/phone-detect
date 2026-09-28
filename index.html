@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>你的手机是什么品牌？· 设备检测</title>
+<meta name="description" content="读取浏览器信息，检测手机品牌、型号、系统版本、屏幕与硬件参数。全部在本机计算，不上传任何数据。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='9' y='2' width='14' height='28' rx='4' fill='%230078D4'/%3E%3Crect x='11' y='5' width='10' height='22' rx='2' fill='%23C7E8FF'/%3E%3Ccircle cx='16' cy='26' r='1.5' fill='%230078D4'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar__in">
+    <span class="brand">
+      <span class="brand__ico">📱</span>
+      <span>设备检测</span>
+    </span>
+    <div class="tb-right">
+      <button class="icon-btn" id="themeBtn" title="切换主题">
+        <svg class="ico-dark" viewBox="0 0 24 24"><path d="M12 3a9 9 0 109 9c0-.46-.04-.92-.1-1.36A5.389 5.389 0 0116.9 12.9a5.403 5.403 0 01-3.14-9.8c-.44-.06-.9-.1-1.36-.1z"/></svg>
+        <svg class="ico-light" viewBox="0 0 24 24"><path d="M12 7c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.65 0-3-1.35-3-3s1.35-3 3-3 3 1.35 3 3-1.35 3-3 3zm-1-13h2v3h-2zm0 16h2v3h-2zM4.22 5.64l1.42-1.42 2.12 2.12-1.42 1.42zm10.02 10.02l1.42-1.42 2.12 2.12-1.42 1.42zM2 11h3v2H2zm16 0h3v2h-3zM6.34 17.66l2.12-2.12 1.42 1.42-2.12 2.12zM12.12 7.8l2.12-2.12 1.42 1.42-2.12 2.12z"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ===== 主结果卡 ===== -->
+  <section class="hero" id="hero">
+    <div class="hero__badge" id="hBadge">检测完成</div>
+    <div class="hero__icon" id="hIcon">📱</div>
+    <div class="hero__brand" id="hBrand">检测中…</div>
+    <div class="hero__cn" id="hCn"></div>
+    <div class="hero__model" id="hModel"></div>
+    <div class="hero__sub" id="hModelNote"></div>
+    <div class="hero__chips" id="hChips"></div>
+  </section>
+
+  <!-- ===== 分组信息 ===== -->
+  <div id="groups"></div>
+
+  <!-- ===== 原始 UA ===== -->
+  <section class="card ua-card">
+    <div class="card__hd">
+      <h2>原始 User Agent</h2>
+      <button class="btn-txt" id="copyUa">复制</button>
+    </div>
+    <div class="ua-box" id="uaBox"></div>
+    <p class="ua-note">上面所有信息都是从这段字符串和浏览器接口读出来的，没有向任何服务器发送。</p>
+  </section>
+
+  <!-- ===== 手输 UA 检测 ===== -->
+  <section class="card">
+    <div class="card__hd"><h2>粘贴一段 UA 试试</h2></div>
+    <p class="hint">想看看别的设备长什么样？把它的 User Agent 粘进来。</p>
+    <textarea id="uaInput" class="ua-input" rows="3" placeholder="Mozilla/5.0 (Linux; Android 14; …)"></textarea>
+    <div class="row-btns">
+      <button class="btn-filled" id="btnDetect">检测</button>
+      <button class="btn-tonal" id="btnReset">回到本机</button>
+    </div>
+    <div id="customOut" class="custom-out" hidden></div>
+  </section>
+
+  <!-- ===== 品牌速查 ===== -->
+  <section class="card">
+    <div class="card__hd"><h2>能识别这些品牌</h2></div>
+    <div class="brandlist" id="brandList"></div>
+  </section>
+
+  <footer class="foot">
+    <p>识别依赖 User Agent，而 UA 是可以被改写的（比如浏览器「桌面版网站」模式）。因此结果仅供参考，不能当作唯一依据。</p>
+    <p class="foot__dim">纯前端实现 · 零依赖 · 不收集任何数据</p>
+  </footer>
+
+</main>
+
+<div class="snackbar" id="snackbar" role="status" aria-live="polite"></div>
+
+<script src="detect.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
