@@ -55,8 +55,13 @@ const App = {
     document.getElementById('hIcon').textContent = r.brand.icon;
     document.getElementById('hBrand').textContent = r.brand.name;
     document.getElementById('hCn').textContent = r.brand.cn;
-    document.getElementById('hModel').textContent =
-      r.model.code !== '—' ? r.model.code : '未能识别型号';
+    const modelEl = document.getElementById('hModel');
+    if (r.model.sanitized) {
+      modelEl.textContent = '型号已被系统隐藏';
+      modelEl.style.fontSize = '17px';
+    } else {
+      modelEl.textContent = r.model.code !== '—' ? r.model.code : '未收录该型号';
+    }
     document.getElementById('hModelNote').textContent = r.model.note || '';
     document.getElementById('hBadge').textContent =
       r.isMobile ? '检测到移动设备' : '未检测到手机特征';
@@ -88,7 +93,8 @@ const App = {
       ['内核', this.engine(r.browser.name)],
       ['内置浏览器', r.inApp ? `${r.inApp} App` : '否（独立浏览器）'],
       ['平台标识', r.hardware.vendor, 'mono'],
-    ]));
+    ].concat(r.model.sanitized ? [['型号脱敏', '是（UA 被系统改写）']] : [])));
+
 
     G.push(this.group('屏幕', [
       ['逻辑分辨率', r.screen.css, 'mono'],

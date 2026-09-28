@@ -14,15 +14,21 @@ const Detect = {
       test: ua => /iPhone|iPad|iPod/i.test(ua),
       os: () => 'iOS / iPadOS',
     },
-    {
-      id: 'huawei', name: 'HUAWEI', cn: '华为', color: '#CF0A2C', icon: '🌸',
-      test: ua => /HUAWEI|HuaweiBrowser|HarmonyOS|\bELS-|\bTAS-|\bJEF-|\bLIO-|\bANA-|\bNOH-|\bALN-|\bBAL-|\bFOA-|\bBRR-|\bCET-|\bDBY-|\bGLA-|\bJAD-|\bLIO-|\bMAR-|\bOCE-|\bTET-|\bVIE-|\bWKG-/i.test(ua) && !/Honor|HONOR/i.test(ua),
-      os: ua => /HarmonyOS/i.test(ua) ? 'HarmonyOS' : 'Android（EMUI）',
-    },
+    /* 荣耀优先于华为：两者的机型码格式完全一样（都是 XXX-AN00），
+       但荣耀独立后机型码自成一套。若让华为先匹配，荣耀会被误判成华为。
+       最可靠的区分依据是 Build 字段里的厂商前缀：
+         Build/HUAWEIxxx → 华为      Build/HONORxxx → 荣耀 */
     {
       id: 'honor', name: 'HONOR', cn: '荣耀', color: '#1E5EFF', icon: '🛡️',
-      test: ua => /Honor|HONOR/i.test(ua),
+      test: ua => /Build\/HONOR/i.test(ua) || /bdhonorbrowser|HonorBrowser/i.test(ua)
+        || /Honor|HONOR/i.test(ua) || this.HONOR_CODE.test(ua),
       os: ua => /HarmonyOS/i.test(ua) ? 'HarmonyOS（MagicOS）' : 'Android（MagicOS）',
+    },
+    {
+      id: 'huawei', name: 'HUAWEI', cn: '华为', color: '#CF0A2C', icon: '🌸',
+      test: ua => /HUAWEI|HuaweiBrowser|HarmonyOS|\bELS-|\bTAS-|\bJEF-|\bLIO-|\bANA-|\bNOH-|\bALN-|\bBAL-|\bFOA-|\bBRR-|\bCET-|\bDBY-|\bGLA-|\bJAD-|\bMAR-|\bOCE-|\bTET-|\bVIE-|\bWKG-/i.test(ua)
+        && !this.HONOR_CODE.test(ua) && !/Build\/HONOR/i.test(ua),
+      os: ua => /HarmonyOS/i.test(ua) ? 'HarmonyOS' : 'Android（EMUI）',
     },
     {
       id: 'xiaomi', name: 'Xiaomi', cn: '小米', color: '#FF6900', icon: '🍊',
@@ -113,6 +119,11 @@ const Detect = {
     },
   ],
 
+  /* ---------- 荣耀机型码前缀
+     荣耀独立后自成一套：LOG / BVL / NLA / DNN / AMG / JLH / ALI / DNY …
+     注意不能只用「XXX-AN00」这个格式去判断——华为机型码也是这个格式。 */
+  HONOR_CODE: /\b(LOG|BVL|NLA|DNN|AMG|JLH|ALI|DNY|ELI|MNT|BRC|CSV|FER|GIA|HPB|LGE|MAA|REA|RMO|SDY|TYH|VNE|ANY|CMA|CRT|FRD|MAG|MCT|RNA|SEV|SYM|TMP|VOW|WOD|XLC)-[A-Z0-9]{2,4}\b/i,
+
   /* ---------- 型号库：[正则, 机型名, 品牌 id]
      第三列用于「品牌未命中时按型号码反推品牌」——
      不少国产 ROM 的 UA 里只留型号码、不带品牌字样。 ---------- */
@@ -141,6 +152,13 @@ const Detect = {
     [/^22111317C/, 'Redmi Note 12 Pro', 'xiaomi'],
     [/^\d{8}[A-Z]{0,2}I/, 'Redmi 机型', 'xiaomi'],
     [/^\d{8}[A-Z]{0,2}C/, 'Xiaomi 机型', 'xiaomi'],
+    // 荣耀（独立后的机型码）
+    [/^LOG-AN00/, '畅玩 70 Plus', 'honor'], [/^LOG-AN10/, '畅玩 70 Plus', 'honor'],
+    [/^ALI-AN/, 'Magic 6 系列', 'honor'], [/^BVL-AN/, 'Magic 6 RSR', 'honor'],
+    [/^DNN-AN/, '荣耀 60 Pro', 'honor'], [/^AMG-AN/, '荣耀 GT', 'honor'],
+    [/^JLH-AN/, '荣耀 50 SE', 'honor'], [/^DNY-NX/, '荣耀 400 系列', 'honor'],
+    [/^NLA-AN/, '荣耀机型', 'honor'],
+    [/^[A-Z]{3}-W\d{2}/, '荣耀平板', 'honor'],
     // 华为
     [/^ELS-AN/, 'P50 Pro', 'huawei'], [/^JEF-AN/, 'P50 Pocket', 'huawei'],
     [/^TAS-AN/, 'Mate 50 / 60', 'huawei'], [/^LIO-AL/, 'Mate 30 Pro', 'huawei'],
@@ -218,7 +236,14 @@ const Detect = {
     for (const b of this.BRANDS) {
       try { if (b.test(ua)) return b; } catch (e) { /* 规则异常则跳过 */ }
     }
-    /* 兜底：国产 ROM 常常只留型号码、不带品牌字样，
+    /* 兜底一：型号码被脱敏时，Build 字段里的厂商前缀往往还留着
+       （Build/HONORLGN-AN00 → 荣耀，Build/HUAWEIxxx → 华为）。 */
+    const bm = ua.match(/Build\/(HONOR|HUAWEI|HONOR)/i);
+    if (bm) {
+      const b = this.BRANDS.find(x => x.id === (bm[1].toLowerCase() === 'honor' ? 'honor' : 'huawei'));
+      if (b) return b;
+    }
+    /* 兜底二：国产 ROM 常常只留型号码、不带品牌字样，
        这时用型号库反推品牌（MODELS 的第三列就是品牌 id）。 */
     const m = ua.match(/Android\s*[\d.]+;\s*([^;)]+)/);
     if (m) {
@@ -256,6 +281,7 @@ const Detect = {
     }
     // 型号码后面常跟着 "Build/xxxx" 或 "wv)"，去掉只留代号本身
     code = code.replace(/\s*Build\/.*$/i, '').replace(/\s*\).*$/, '').trim();
+
     // 2) iPhone：用分辨率推测
     if (brand && brand.id === 'apple') {
       const key = `${screen.width},${screen.height}`;
@@ -270,13 +296,31 @@ const Detect = {
         iosMajor: iosV || null,
       };
     }
-    // 3) 品牌内建型号库匹配
+    /* 3) 系统级 UA 脱敏检测（只对 Android 生效）
+       部分 ROM 的隐私保护会把设备型号替换成占位符，最常见的是单个 "K"
+       （荣耀 MagicOS 的 UA 隐私保护就是这个表现）。
+       必须放在 iPhone / 桌面分支之后——否则 iOS 和 PC 因为没有
+       Android 机型码，会被误判成「被脱敏」。 */
+    if (/Android/i.test(ua)) {
+      const SANITIZED = ['K', 'Android', 'Generic', 'Unknown', 'Mobile', 'Linux', 'Device'];
+      if (!code || code.length <= 2 || SANITIZED.includes(code)) {
+        return {
+          code: '—', raw: code, guessed: true,
+          sanitized: true,
+          note: code
+            ? `型号被系统替换成占位符「${code}」——这通常是 ROM 的 UA 隐私保护（荣耀 MagicOS 最常见），可尝试关闭该开关或换用系统浏览器`
+            : 'UA 中没有机型信息',
+        };
+      }
+    }
+
+    // 4) 品牌内建型号库匹配
     if (code) {
       for (const [re, name] of this.MODELS) {
         if (re.test(code)) return { code: name, raw: code, guessed: false };
       }
       // 品牌匹配上的话，型号码本身就是有用的信息
-      return { code, raw: code, guessed: false, note: '型号库未收录，显示原始代号' };
+      return { code, raw: code, guessed: false, note: '型号库未收录该型号，显示原始代号' };
     }
     return { code: '—', raw: '', guessed: true };
   },
